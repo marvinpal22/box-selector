@@ -3,10 +3,16 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\PackingService;
+use Illuminate\Support\Facades\Log;
+use App\Http\Requests\StoreBoxRequest;
 
 class BoxController extends Controller
 {
     //
+    public function __construct(
+        private PackingService $packingServices,
+    ) {}
     public function packageList(){
 
         return array(
@@ -47,16 +53,14 @@ class BoxController extends Controller
             ],
         );
     }
-    public function packItem(Request $request){
+    public function packItem(StoreBoxRequest $request){
+        $products = $this->packingServices->findSmallestBoxWithItemsRemoval($request->product);
+        return $products;
 
-        $packages = $this->packageList();
-        for ($i = 0; $i < count($packages); $i++) {
-			$packages[$i]['volume_limit'] = $packages[$i]['length'] * $packages[$i]['width'] * $packages[$i]['height'];
 
-            //set the total volume_limit of the packages
-		}
 
-        $prods = $this->volumeChecker($request->product,$packages);
+
+        $prods = $this->volumeChecker1($request->product,$packages);
 
         return $prods;
 
@@ -177,35 +181,153 @@ class BoxController extends Controller
         return $packages;
     }
 
-    public function volumeChecker($products,$packages){
 
-        $prods = array();
-        $product_total_volume = 0;
-        $product_total_weight = 0;
+    public function findSmallestBoxWithItemsRemoval($products,$packages){
         for ($i = 0; $i < count($products); $i++) { 
-
             $products[$i]['volume'] = $products[$i]['length'] * $products[$i]['width'] * $products[$i]['height'];
-            $products[$i]['total_volume'] = $products[$i]['volume'] * $products[$i]['quantity'];
-            $products[$i]['total_weight'] = $products[$i]['weight'] * $products[$i]['quantity'];
-
-            $product_total_volume+=$products[$i]['total_volume'];
-            $product_total_weight+=$products[$i]['total_weight'];
 		}
 
-        $prods[0]['product'] = $products;
-        $prods[0]['total_weight'] = $product_total_weight;
-        $prods[0]['total_volume'] = $product_total_volume;
+        array_multisort(array_column($products, 'volume'), SORT_DESC, $products);
+        array_multisort(array_column($packages, 'volume_limit'), SORT_DESC, $packages);
 
+        $removedProduct = [];
+        $box = [];
+        while($products){
+            $smallestBox = $this->findSmallestBox($products);
+            if($smallestBox){
+                // dd($smallestBox);
+                $box[] = array($smallestBox,$products);
+                return $box;
+                // break;
+            }
+
+            // dd('TEST');
+            // Log::info($products);
+            //remove the largest item
+            // array_push($removedProduct,$products);
+            array_shift($products);
+
+            // $products->shift(); 
+            // echo "TEST";
+        }
+
+        return null;
+        return response()->json($box,$products);
+        return $box;
+        // while($removeProduct){
+        //     $smallestBox = $this->findSmallestBox($products);
+        //     if($smallestBox){
+        //         return $smallestBox;
+        //     }
+        // }
+
+    }
+
+    public function findSmallestBox($products){
+        $packages = $this->packageList();
+        for ($i = 0; $i < count($packages); $i++) {
+			$packages[$i]['volume_limit'] = $packages[$i]['length'] * $packages[$i]['width'] * $packages[$i]['height'];
+		} //calculate volume_limit
+
+        foreach($packages as $package){
+            if($this->itemsFitInBox($products,$package)){
+                return $package;
+            }
+        }
+
+        return null;
+    }
+
+    public function itemsFitInBox($products,$package){
+        $totalVolume = 0;
+        foreach ($products as $product) {
+            $totalVolume += $product['length'] * $product['width'] * $product['height'];
+        }
+        $packageVolume = $package['volume_limit'];
+        return $totalVolume <= $packageVolume;
+    }
+
+    public function volumeChecker($products,$packages){
+
+
+        // npm install
+        // composer install
+        // php artisan key:generate
+
+        // to run 
+        // npm run dev && php artisan serve
+
+
+
+
+        $bins = [];
+        $usedBoxes = [];
+        foreach($products as $product){
+            $places = false;
+
+            foreach($packages  as $package){
+                // return $bins[$package['volume_limit']];
+                if (isset($bins[$package['volume_limit']]) && $bins[$package['volume_limit']]['remaining'] >= $product['volume']) {
+                    $bins[$package['volume_limit']]['contents'][] = $product;
+                    $bins[$package['volume_limit']]['remaining'] -= $product['volume'];
+                    $placed = true;
+                    break;
+                }
+
+                // Check if this box size can accommodate the item
+                if (!isset($bins[$package['volume_limit']]) && $package['volume_limit'] >= $product['volume']) {
+                    $bins[$package['volume_limit']] = [
+                        'capacity' => $package['volume_limit'],
+                        'remaining' => $package['volume_limit'] - $product['volume'],
+                        'contents' => $product,
+                    ];
+
+                    $placed = true;
+                    $usedBoxes[] = $package;
+                    break;
+                }
+            }
+
+            if(!$placed){
+                $largestItem = max(array_column($products, 'volume'));
+                return "TEST";
+            }
+        }
+        return $bins;
+
+
+
+
+
+
+
+
+
+
+
+
+
+        return $prods;
         // return count($prods);
         $box = array();
         $let_found_box = 0;
         $index = 0;
 
-        $i = 0;
+        // $i = 0;
+        // $b = 0;
+        // return $prods;
         while (count($prods)){
         // for($i =0; $i < count($prods); $i++){
+            // echo count($prods);
+            // if(!array_key_exists($i, $prods)) return;
+            // if(!isset($prods[$i]['product'])) return;
             for($b = 0 ; $b < count($prods[$i]['product']); $b++){
+                $let_found = 0;
+                // echo $prods[$i]['product'][$b]['name'];
+
                 array_multisort(array_column($prods[$i]['product'], 'total_volume'), SORT_DESC, $prods[$i]['product']);
+                // echo $prods[$i]['product'][$b]['name'];
+                // dd( $prods[$i]['product'][0]['name']);
                 // array_push($prods, array("TEST"));
                 // array_push($prods, array(
                 //     "product"=>array($prods[$i]['product'][0]),
@@ -213,53 +335,104 @@ class BoxController extends Controller
                 //     "total_volume"=> "200"
                 // ));
 
+                // unset($prods[$i]['product'][0]);
                 for ($x = 0; $x < count($packages); $x++) {
                     // if(isset($prods[$i]['product'][$b])){
                         if(($packages[$x]['volume_limit'] >= $prods[$i]['total_volume'] && $prods[$i]['total_volume'] <= $packages[$x]['volume_limit'] ) && ($packages[$x]['weight_limit'] >= $prods[$i]['total_weight'] && $prods[$i]['total_weight'] <= $packages[$x]['weight_limit']))
                         {
 
-                            // return 'test';
                             array_push($box, array(
                                 $packages[$x],
-                                $prods[$i]['product']
+                                $prods[$i]
                             ));
+
                             // echo "found box - ".$prods[$i];
-                            $let_found_box++;
+                            // $let_found_box++;
+                            
                             unset($prods[$i]);
-                            break;
+                            $let_found++;
+                            // return;
+                            // echo count($prods);
+                            // echo $let_found;
+                            // array_splice($prods[$i], 0, 3);
+                            // return $prods;
+                            // array_shift($prods[$i]);
+                            // break;
+
                             // return $packages[$b];
                         }
+                        // echo $let_found."2";
+                        // if($let_found > 0){
+                        //     // break ;
+                        // }
+                        // // break;
+                        // echo "TEST";
+                            // echo $prods[$i]['product'][0]['name'];
+                            // array_push($prods, array(
+                            //     "product"=>array($prods[$i]['product'][0]),
+                            //     "total_weight"=>"100",
+                            //     "total_volume"=> "200"
+                            // ));
+                           
+                            // array_splice($prods[$i]['product'], 0, 1);
+                            // break;
+
+
+
+                            // return $prods[$i]['product'][0];
+                            // return $prods[$i]['product'][0];
+                            // unset($prods[$i]['product'][0]);
+                            // array_shift($prods[$i]['product'][0]);
+
+                            // break;
+                        
                         // break;
-
-                    // }
-
-                     else{
-
-                        // return $prods[$i]['product'][0];
-                        if(isset($prods[$i]['product'][0])){
-                            array_push($prods, array(
-                                "product"=>[$prods[$i]['product'][0]],
-                                "total_weight"=>"100",
-                                "total_volume"=> "200"
-                            ));
-                            unset($prods[$i]['product'][0]);
-                        }
-
-                        // return $prods[$i]['product'][0];
-                        // return $prods[$i]['product'][0];
-                        // $prods[] = $prods[$i]['product'][0];
-                        // array_push($prods,$prods[$i]['product'][0]);
-                        // break;
-
-                        // array_push($prods,
-                        // array(
-                        //     array($prods[$i]['product'][0]),
-                        //     "total_weight"=>"100",
-                        //     "total_volume"=> "200"
-                        // ));
-                        // break;
-                    }
                 }
+
+
+                if($let_found > 0){
+                    break;
+                }else{
+                    echo "REASSIGN";
+                    array_push($prods, array(
+                        "product"=>array($prods[$i]['product'][0]),
+                        "total_weight"=>"100",
+                        "total_volume"=> "200"
+                    ));
+                    
+                    // array_splice($prods[$i]['product'][0], 0, 1);
+                    unset($prods[$i]['product'][0]);
+                    array_values($prods[$i]['product']);
+                    return;
+                }
+
+                //      else{
+
+                //         // return $prods[$i]['product'][0];
+                //         if(isset($prods[$i]['product'][0])){
+                //             array_push($prods, array(
+                //                 "product"=>[$prods[$i]['product'][0]],
+                //                 "total_weight"=>"100",
+                //                 "total_volume"=> "200"
+                //             ));
+                //             unset($prods[$i]['product'][0]);
+                //         }
+
+                //         // return $prods[$i]['product'][0];
+                //         // return $prods[$i]['product'][0];
+                //         // $prods[] = $prods[$i]['product'][0];
+                //         // array_push($prods,$prods[$i]['product'][0]);
+                //         // break;
+
+                //         // array_push($prods,
+                //         // array(
+                //         //     array($prods[$i]['product'][0]),
+                //         //     "total_weight"=>"100",
+                //         //     "total_volume"=> "200"
+                //         // ));
+                //         // break;
+                //     }
+                // }
 
                 // return count($prods);
 
@@ -275,10 +448,14 @@ class BoxController extends Controller
                 // break;
             }
             // break;
-            $i++;
+            // $i++;
+            // $i++;
+            // echo "TEST";
+            // echo $let_found;
         }   
 
         // }
+        return $box;
         return $i;
         return $prods;
 
