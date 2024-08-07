@@ -172,51 +172,18 @@ import { ref, onMounted,reactive } from 'vue'
             <div style="font-size: 1.4em; font-weight: bold; color: #666363;">
                 RESULTS:
             </div>
-            <div v-for="(product,index) in results" class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;">
+            <div v-for="(product) in results" class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;">
                 <div v-for="(item) in product">
-                    <!-- {{ typeof item }} -->
                     <div>
                         {{ item }}
                     </div>
                 </div>
             </div>
-            <!--
-            <div v-for="(item,index) in results['hasBox']" class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;">
-                <div class="pb-2">
-                    <div style="color:#7a7777;"><b>BOX :</b></div>
-                    <div>{{item.box}}</div>
-                </div>
-                <div>
-                    <div style="color:#7a7777;"><b>PRODUCTS :</b></div>
-                    <div v-if="Array.isArray(item.products)" v-for="(product) in item.products">
-                        {{product}}
-                    </div>
-                    <div v-else>
-                        {{ item.products }}
-                    </div>
-                </div>
-            </div>
-
-
-            <div  class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;" v-if="results['noBox']?.length > 0">
-                <div class="pb-2">
-                    <div style="color:#7a7777;"><b>NO AVAILABLE BOX</b></div>
-                </div>
-                <div>
-                    <div style="color:#7a7777;"><b>PRODUCTS :</b></div>
-                    <div v-for="(item,index) in results['noBox']">
-                        {{ item }}
-                    </div>
-                </div>
-            </div>
-            -->
-            
         </div>
-
-
     </div>
 </template>
 <style>
+
 @import url('https://fonts.googleapis.com/css2?family=Berkshire+Swash&family=Bungee&family=Calistoga&family=Chelsea+Market&family=Chicle&family=Limelight&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Rubik+Bubbles&family=Zain:wght@200;300;400;700;800;900&display=swap');
 body{
     background-color: #f5f5f5;
