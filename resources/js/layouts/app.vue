@@ -1,7 +1,5 @@
 <script setup>
 import { ref, onMounted,reactive } from 'vue'
-import { useVuelidate } from '@vuelidate/core'
-import { required } from '@vuelidate/validators'
     const errors = ref({});
     const items = ref([
         {
@@ -45,19 +43,6 @@ import { required } from '@vuelidate/validators'
             quantity: 1
         },
     ]);
-
-    const rules = 
-    {
-        name: {required},
-        length: {required},
-        width: {required},
-        height: {required},
-        weight: {required},
-        quantity: {required}
-    };
-    
-    const v$ = useVuelidate(rules,items);
-
 
     const results = ref([]);
 
@@ -187,7 +172,15 @@ import { required } from '@vuelidate/validators'
             <div style="font-size: 1.4em; font-weight: bold; color: #666363;">
                 RESULTS:
             </div>
-
+            <div v-for="(product,index) in results" class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;">
+                <div v-for="(item) in product">
+                    <!-- {{ typeof item }} -->
+                    <div>
+                        {{ item }}
+                    </div>
+                </div>
+            </div>
+            <!--
             <div v-for="(item,index) in results['hasBox']" class="mt-3" style="border-radius: 11px; border:solid 1px; border-color: #DCDCDC; padding-left: 20px; padding-top:10px; padding-bottom: 10px;">
                 <div class="pb-2">
                     <div style="color:#7a7777;"><b>BOX :</b></div>
@@ -216,6 +209,7 @@ import { required } from '@vuelidate/validators'
                     </div>
                 </div>
             </div>
+            -->
             
         </div>
 

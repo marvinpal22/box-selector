@@ -50,7 +50,7 @@ class PackingService
         );
     }
 
-    public function findSmallestBoxWithItemsRemoval($products){
+    public function findSmallestBoxWithProductsRemoval($products){
         for ($i = 0; $i < count($products); $i++) { 
             $products[$i]['volume'] = $products[$i]['length'] * $products[$i]['width'] * $products[$i]['height'];
             //calculate the total volume of the products
@@ -59,29 +59,27 @@ class PackingService
         array_multisort(array_column($products, 'volume'), SORT_DESC, $products);
 
         $products = collect($products);
-        $box = [];
-        $noBox = [];
+        $box = array();
         while ($products->isNotEmpty()) {
             $smallestBox = $this->findSmallestBox($products);
 
             if ($smallestBox) {
-                // $box[] = array($smallestBox,$products);
-                array_push($box,array("box" => $smallestBox, "products" => $products));
+                array_push($box,[$smallestBox['name'],...$products]);
                 break;
             }else{
                 $largestItem = $products->shift();
                 $findBox = $this->findSmallestBox(collect([$largestItem]));
                 if ($findBox) {
-                    array_push($box,array("box" => $findBox, "products" => $largestItem));
+                    //find largest box
+                    array_push($box,array($findBox['name'],$largestItem));
                 }
                 else{
                     //no box fits
-                    array_push($noBox,$largestItem);
+                    array_push($box,array('NO BOX',$largestItem));
                 }
             }
         }
-        // return array_merge($box,$noBox);
-        return response()->json(['hasBox' => $box,'noBox'=>$noBox]);
+        return $box;
 
     }
 
@@ -89,19 +87,19 @@ class PackingService
         //get package list
         $boxes = $this->boxList();
 
-        //calculate volume_limit
+        //calculate volume_limit of the boxes
         for ($i = 0; $i < count($boxes); $i++) {
 			$boxes[$i]['volume_limit'] = $boxes[$i]['length'] * $boxes[$i]['width'] * $boxes[$i]['height'];
 		} 
 
+        //sort the boxes to ascending
         array_multisort(array_column($boxes, 'volume_limit'), SORT_ASC, $boxes);
 
-        //loop the packages
+        //loop the boxes
         foreach($boxes as $box){
 
             //find fitted box
-            if($this->itemsFitInBox($products,$box)){
-                // echo $key;
+            if($this->ProductsFitInBox($products,$box)){
                 return $box;
             }
         }
@@ -117,11 +115,10 @@ class PackingService
                $product['height'] <= $box['height'];
     }
 
-    public function itemsFitInBox($products,$box){
+    public function ProductsFitInBox($products,$box){
 
         $totalVolume = 0;
         $totalWeight = 0;
-        $dimensionChecker = true; //if false product is not fitted
         foreach ($products as $product) {
             // calculate the total volume of the product
             $totalVolume += ($product['length'] * $product['width'] * $product['height']); 
@@ -129,40 +126,17 @@ class PackingService
             // calculate the total weight of the product
             $totalWeight += $product['weight'];
 
-
+            //dimension check 
+            // return false if the product does not fit.
             if(!$this->itemFitsInBox($product, $box)) {
                 return false;
             }
-            //if product length is greater than prackage length,width,height
-
-            // if(
-            //     ($product['length'] > $box['length'] || $product['length'] > $box['width'] 
-            //     || $product['length'] > $box['height']) 
-            //     && 
-            //     ($product['height'] > $box['length'] || $product['height'] > $box['width'] || $product['height'] > $box['height']) 
-            //     &&
-            //     ($product['width'] > $box['length'] || $product['width'] > $box['width'] || $product['width'] > $box['height'])){
-            //         $dimensionChecker = false;
-            //     }
-
-
-            
-            // if(
-            // ($product['length'] > $box['length'] || $product['length'] > $box['width'] 
-            // || $product['length'] > $box['height']) 
-            // && 
-            // ($product['height'] > $box['length'] || $product['height'] > $box['width'] || $product['height'] > $box['height']) 
-            // &&
-            // ($product['width'] > $box['length'] || $product['width'] > $box['width'] || $product['width'] > $box['height'])){
-            //     $dimensionChecker = false;
-            // }
         }
-
+        
         $boxVolume = $box['volume_limit'];
         $boxWeight = $box['weight_limit'];
         
         //return if product total volume is less than equal to package volume limit and product total weight is less than equal to package weight limit
-
         //weight and volume checker
         return ($totalVolume <= $boxVolume && $totalWeight <= $boxWeight);
     }

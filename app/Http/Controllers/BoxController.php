@@ -54,7 +54,7 @@ class BoxController extends Controller
         );
     }
     public function packItem(StoreBoxRequest $request){
-        $products = $this->packingServices->findSmallestBoxWithItemsRemoval($request->product);
+        $products = $this->packingServices->findSmallestBoxWithProductsRemoval($request->product);
         return $products;
 
 
